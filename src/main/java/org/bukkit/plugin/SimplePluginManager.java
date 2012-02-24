@@ -2,6 +2,7 @@ package org.bukkit.plugin;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,6 +25,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.PluginCommandYamlParser;
 import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.event.Event;
+import org.bukkit.event.EventException;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -494,9 +496,33 @@ public final class SimplePluginManager implements PluginManager {
                             ));
                 }
             } catch (Throwable ex) {
-                server.getLogger().log(Level.SEVERE, "Could not pass event " + event.getEventName() + " to " + registration.getPlugin().getDescription().getName(), ex);
+                server.getLogger().log(Level.SEVERE, "Could not pass event " + event.getEventName() + " to " + registration.getPlugin().getDescription().getName(), getBetterException(ex));
             }
         }
+    }
+
+    /**
+     * For EventExceptions caused by InvocationTargetExceptions,
+     * this returns the cause field of the InvocationTargetException.
+     *
+     * @param throwable An exception with lots of information useless to plugin developers
+     * @return A much more useful and precise exception
+     */
+    private static Throwable getBetterException(Throwable throwable) {
+        if (!(throwable instanceof EventException)) {
+            return throwable;
+        }
+
+        final Throwable eventExceptionCause = throwable.getCause();
+        if (eventExceptionCause == null) {
+            return throwable;
+        }
+
+        if (!(eventExceptionCause instanceof InvocationTargetException)) {
+            return eventExceptionCause;
+        }
+
+        return eventExceptionCause.getCause();
     }
 
     public void registerEvents(Listener listener, Plugin plugin) {
