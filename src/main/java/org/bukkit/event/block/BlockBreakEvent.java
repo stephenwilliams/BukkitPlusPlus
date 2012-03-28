@@ -1,11 +1,14 @@
 package org.bukkit.event.block;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.block.Block;
+import org.bukkit.entity.Painting;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.painting.PaintingBreakEvent.RemoveCause;
 import org.bukkit.inventory.ItemStack;
 
 /**
@@ -30,6 +33,15 @@ public class BlockBreakEvent extends BlockEvent implements Cancellable {
         this.cancel = false;
         this.drops = drops;
     }
+    
+    //CraftBukkitPlusPlus start
+    public BlockBreakEvent(final Block theBlock, final Player player) {
+        super(theBlock);
+        this.player = player;
+        this.cancel = false;
+        this.drops = Collections.EMPTY_LIST;
+    }
+    //CraftBukkitPlusPlus end
 
     /**
      * Gets the Player that is breaking the block involved in this event.

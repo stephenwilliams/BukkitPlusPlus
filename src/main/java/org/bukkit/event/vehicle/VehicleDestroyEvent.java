@@ -1,5 +1,6 @@
 package org.bukkit.event.vehicle;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.entity.Entity;
@@ -24,6 +25,14 @@ public class VehicleDestroyEvent extends VehicleEvent implements Cancellable {
         this.attacker = attacker;
         this.drops = drops;
     }
+    
+    //CraftBukkitPlusPlus start
+    public VehicleDestroyEvent(final Vehicle vehicle, final Entity attacker) {
+        super(vehicle);
+        this.attacker = attacker;
+        this.drops = Collections.EMPTY_LIST;
+    }
+    //CraftBukkitPlusPlus end
 
     /**
      * Gets the Entity that has destroyed the vehicle, potentially null

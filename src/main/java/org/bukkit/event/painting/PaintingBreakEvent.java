@@ -1,8 +1,11 @@
 package org.bukkit.event.painting;
 
+import java.util.Collections;
 import java.util.List;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Painting;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
@@ -21,6 +24,14 @@ public class PaintingBreakEvent extends PaintingEvent implements Cancellable {
         this.cause = cause;
         this.drops = drops;
     }
+    
+    //CraftBukkitPlusPlus start
+    public PaintingBreakEvent(final Painting painting, final RemoveCause cause) {
+        super(painting);
+        this.cause = cause;
+        this.drops = Collections.EMPTY_LIST;
+    }
+    //CraftBukkitPlusPlus end
 
     /**
      * Gets the cause for the painting's removal

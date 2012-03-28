@@ -1,9 +1,11 @@
 package org.bukkit.event.player;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Vehicle;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
@@ -23,6 +25,15 @@ public class PlayerShearEntityEvent extends PlayerEvent implements Cancellable {
         this.what = what;
         this.items = drops;
     }
+    
+    //CraftBukkitPlusPlus start
+    public PlayerShearEntityEvent(final Player who, final Entity what) {
+        super(who);
+        this.cancel = false;
+        this.what = what;
+        this.items = Collections.EMPTY_LIST;
+    }
+    //CraftBukkitPlusPlus end
 
     public boolean isCancelled() {
         return cancel;

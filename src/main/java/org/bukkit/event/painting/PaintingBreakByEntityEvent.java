@@ -16,6 +16,13 @@ public class PaintingBreakByEntityEvent extends PaintingBreakEvent {
         super(painting, RemoveCause.ENTITY, drops);
         this.remover = remover;
     }
+    
+    //CraftBukkitPlusPlus start
+    public PaintingBreakByEntityEvent(final Painting painting, final Entity remover) {
+        super(painting, RemoveCause.ENTITY);
+        this.remover = remover;
+    }
+    //CraftBukkitPlusPlus end
 
     /**
      * Gets the entity that removed the painting
