@@ -10,10 +10,10 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
@@ -22,8 +22,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
-import org.bukkit.configuration.serialization.ConfigurationSerializable;
-import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventException;
 import org.bukkit.event.EventHandler;
@@ -49,8 +47,7 @@ import com.google.common.collect.ImmutableList;
 public class JavaPluginLoader implements PluginLoader {
     private final Server server;
     protected final Pattern[] fileFilters = new Pattern[] { Pattern.compile("\\.jar$"), };
-    protected final Map<String, Class<?>> classes = new HashMap<String, Class<?>>();
-    protected final Map<String, PluginClassLoader> loaders = new LinkedHashMap<String, PluginClassLoader>();
+    protected final Map<String, PluginClassLoader> loaders = new TreeMap<String, PluginClassLoader>(String.CASE_INSENSITIVE_ORDER);
 
     public JavaPluginLoader(Server instance) {
         server = instance;
@@ -150,7 +147,7 @@ public class JavaPluginLoader implements PluginLoader {
         } catch (Throwable ex) {
             throw new InvalidPluginException(ex);
         }
-
+        loader.setPlugin(result);
         loaders.put(description.getName(), loader);
 
         return result;
@@ -223,48 +220,65 @@ public class JavaPluginLoader implements PluginLoader {
     }
 
     public Class<?> getClassByName(final String name) {
-        Class<?> cachedClass = classes.get(name);
+        return getClassByName(name, null);
+    }
 
-        if (cachedClass != null) {
-            return cachedClass;
-        } else {
-            for (String current : loaders.keySet()) {
-                PluginClassLoader loader = loaders.get(current);
+    public Class<?> getClassByName(final String name, PluginClassLoader commonLoader) {
+        Set<String> ignore = new HashSet<String>();
+        if (commonLoader != null) {
+            JavaPlugin plugin = commonLoader.getPlugin();
+            ignore.add(plugin.getName());
 
-                try {
-                    cachedClass = loader.findClass(name, false);
-                } catch (ClassNotFoundException cnfe) {}
-                if (cachedClass != null) {
-                    return cachedClass;
+            if (plugin.getDescription().getDepend() != null) {
+                for (String dependency : plugin.getDescription().getDepend()) {
+                    try {
+                        Class<?> clazz = loaders.get(dependency).findClass(name, false);
+                        if (clazz != null) {
+                            return clazz;
+                        }
+                    } catch (ClassNotFoundException ignored) {
+                    }
+                    ignore.add(dependency);
                 }
+            }
+
+            if (plugin.getDescription().getSoftDepend() != null) {
+                for (String softDependency : plugin.getDescription().getSoftDepend()) {
+                    try {
+                        Class<?> clazz = loaders.get(softDependency).findClass(name, false);
+                        if (clazz != null) {
+                            return clazz;
+                        }
+                    } catch (ClassNotFoundException ignored) {
+                    }
+                    ignore.add(softDependency);
+                }
+            }
+        }
+
+
+        for (String current : loaders.keySet()) {
+            if (ignore.contains(current)) {
+                continue;
+            }
+            PluginClassLoader loader = loaders.get(current);
+            try {
+                Class<?> clazz = loader.findClass(name, false);
+                if (clazz != null) {
+                    return clazz;
+                }
+            } catch (ClassNotFoundException ignored) {
             }
         }
         return null;
     }
 
     public void setClass(final String name, final Class<?> clazz) {
-        if (!classes.containsKey(name)) {
-            classes.put(name, clazz);
-
-            if (ConfigurationSerializable.class.isAssignableFrom(clazz)) {
-                Class<? extends ConfigurationSerializable> serializable = clazz.asSubclass(ConfigurationSerializable.class);
-                ConfigurationSerialization.registerClass(serializable);
-            }
-        }
+        // Do nothing
     }
 
     public void removeClass(String name) {
-        Class<?> clazz = classes.remove(name);
-
-        try {
-            if ((clazz != null) && (ConfigurationSerializable.class.isAssignableFrom(clazz))) {
-                Class<? extends ConfigurationSerializable> serializable = clazz.asSubclass(ConfigurationSerializable.class);
-                ConfigurationSerialization.unregisterClass(serializable);
-            }
-        } catch (NullPointerException ex) {
-            // Boggle!
-            // (Native methods throwing NPEs is not fun when you can't stop it before-hand)
-        }
+        // Do nothing
     }
 
     public Map<Class<? extends Event>, Set<RegisteredListener>> createRegisteredListeners(Listener listener, final Plugin plugin) {
@@ -330,7 +344,9 @@ public class JavaPluginLoader implements PluginLoader {
             String pluginName = jPlugin.getDescription().getName();
 
             if (!loaders.containsKey(pluginName)) {
-                loaders.put(pluginName, (PluginClassLoader) jPlugin.getClassLoader());
+                PluginClassLoader classLoader = (PluginClassLoader) jPlugin.getClassLoader();
+                classLoader.setPlugin(jPlugin);
+                loaders.put(pluginName, classLoader);
             }
 
             try {

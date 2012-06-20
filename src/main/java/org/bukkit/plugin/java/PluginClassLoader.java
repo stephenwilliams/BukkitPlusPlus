@@ -1,5 +1,7 @@
 package org.bukkit.plugin.java;
 
+import org.bukkit.plugin.Plugin;
+
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.HashMap;
@@ -12,6 +14,7 @@ import java.util.Set;
 public class PluginClassLoader extends URLClassLoader {
     private final JavaPluginLoader loader;
     private final Map<String, Class<?>> classes = new HashMap<String, Class<?>>();
+    private JavaPlugin plugin;
 
     public PluginClassLoader(final JavaPluginLoader loader, final URL[] urls, final ClassLoader parent) {
         super(urls, parent);
@@ -33,16 +36,10 @@ public class PluginClassLoader extends URLClassLoader {
         Class<?> result = classes.get(name);
 
         if (result == null) {
-            if (checkGlobal) {
-                result = loader.getClassByName(name);
-            }
+            result = super.findClass(name);
 
-            if (result == null) {
-                result = super.findClass(name);
-
-                if (result != null) {
-                    loader.setClass(name, result);
-                }
+            if (result == null && checkGlobal) {
+                result = loader.getClassByName(name, this);
             }
 
             classes.put(name, result);
@@ -53,5 +50,13 @@ public class PluginClassLoader extends URLClassLoader {
 
     public Set<String> getClasses() {
         return classes.keySet();
+    }
+
+    public JavaPlugin getPlugin() {
+        return plugin;
+    }
+
+    public void setPlugin(JavaPlugin plugin) {
+        this.plugin = plugin;
     }
 }
